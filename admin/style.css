@@ -1,0 +1,13 @@
+#search-ctn{
+    border: 1px solid black;
+    border-radius: 5px;
+}
+
+input{
+    width: 100%;
+height: 2.5em;
+}
+
+.disp-none{
+    display:none;
+}
