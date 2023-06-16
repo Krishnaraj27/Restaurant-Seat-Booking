@@ -1,3 +1,7 @@
+<?php 
+    include("db.php");
+?>
+<DOCTYPE html>
 <html lang="en">
 <head>
  
@@ -182,7 +186,7 @@
         margin-top: 2.5rem;
     }
     .disp-none{
-        display:none;
+        display: none ;
     }
     #summary-ctn{
         display: none;
@@ -219,7 +223,7 @@
             <div class="col-lg-2"></div>
             <div class="col-lg-8">
                 <div class="movie-container">
-        <form action="bookdb.php" method="POST">
+        <form action="bookdb.php" method="POST" >
             <div class="form-group">
                 <label for="bookingdate">Pick a Date : (YYYY/MM/DD)</label>
                 <input type="text" id="date-input" name="bookingdate" onchange="dateSelect()" readonly='true'><br/>
@@ -423,12 +427,54 @@
                 <input type="number" name="totalPrice" id="totalPrice" value="0">
                 <input type="number" name="count" id="seatsCount" value="0">
                 <input type="text" name="seatsid" id="seatsid" value=" ">
+                <input type="number" name="discount" id="discount" value="0" step="0.01" required>
+                <input type="number" name="netTotal" id="netTotal" value="0" step="0.01" required>
             </div>
            
             <div id="summary-ctn">
                 <p class="text">
-                    You have selected <span id="count">0</span> seats for a price of ₹<span id="total">0</span><br>Fill your details below to continue : 
-                    <div class="row my-5">
+                    You have selected <span id="count">0</span> seats for a price of ₹<span id="total">0</span><br>
+                    
+                        <div class="row">
+                            <label for="cpnSelect">Select coupon to apply : </label>
+                            <div class="col">
+                                <select class="form-select" aria-label="Select coupon" name="cpnSelect" id="cpnSelect">
+                                    <?php 
+                                        $sql = "SELECT `coupon_code` FROM coupons WHERE `active` = 'yes'";
+                                        $result = $conn->query($sql);
+                           
+                                        if($result->num_rows > 0){                         
+                                            $options= mysqli_fetch_all($result, MYSQLI_ASSOC);
+                                        }                           
+                                    ?>
+                                    <?php 
+                                        foreach ($options as $option) {
+                                            $cpn = $option['coupon_code'];
+                                    ?>
+                                            <option value="<?php echo $cpn;?>"><?php echo $cpn; ?> </option>
+                                    <?php 
+                                        }
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <button class="btn btn-primary mx-1" type="button" id="applyCoupon" >Apply</button>
+                                <button class="btn btn-primary mx-1" type="button" id="removeCoupon" disabled>Remove</button>
+                            </div>
+                        </div>
+                        <div class="card w-50 mt-4">
+                            <div class="card-body">
+                                <p>Price per seat : ₹<span id="card-price">0</span></p><hr>
+                                <p>No. of seats : <span id="card-seats">0</span></p><hr>
+                                <p>Total price : ₹<span id="card-total">0</span></p><hr>
+                                <p>Discount : ₹<span id="card-discount">0</span></p><hr>
+                                <p>Net Total : ₹<span id="card-netTotal">0</span></p>
+                            </div>
+                        </div>
+                    <div class="my-4">
+                        Fill your details below to continue : 
+                    </div>
+                    <div class="row my-3">
                         <div class="col">
                             <input type="text" class="form-control" placeholder="Name" id="name" name="name" required>
                         </div>
@@ -440,13 +486,14 @@
                         </div>
                     </div>   
                     <button type="submit" class="btn btn-primary" value="submit">Submit</button>
+
                 </p>
             </div>
         </form>
         </div>
          </div>
             <div class="d-grid gap-2 col-4 mx-auto" >
-                <button class="btn btn-primary" id="showSeats" >Show Seats</button>
+                <button class="btn btn-primary" type="button" id="showSeats" >Show Seats</button>
             </div>
         </div>
     </div>
@@ -531,8 +578,8 @@
             if (selectedSession == null) {
                 tableContainer.style.display = "none";
             }
-            console.log(dayOfWeek)
-            console.log(dayType)
+            // console.log(dayOfWeek)
+            // console.log(dayType)
 
         }
         
@@ -588,6 +635,8 @@
 
             document.getElementById('seatsid').value = selectedSeatsId;
 
+            updateDiscount();
+
         }
 
 
@@ -611,6 +660,7 @@
             
 
             });
+
 
 
 
@@ -676,6 +726,104 @@
                 alert("Please select a session")
             }           
         });
+
+
+       
+        var coupon_type = null;
+        var discount_amount = 0;
+        var discount_percentage = 0;
+        var netTotal = 0;
+        var discount = 0;
+
+
+        //fetch coupon
+
+        var removeCpnBtn = document.getElementById('removeCoupon')
+        const coupon_select = document.getElementById('cpnSelect')
+        $(document).on('click','#applyCoupon',function(e) {
+            var cpn_code = coupon_select.value;
+            console.log(cpn_code)
+            $.ajax({    
+                    type: "POST",
+                    url: "fetchcoupons.php",             
+                    data: {
+                        code : cpn_code
+                        },                  
+                    success: function(data){
+                        let i = 0;
+                            for(let j = i; j < data.length; j++){
+                                if(data[j]==","){
+                                    coupon_type = data.slice(i,j);
+                                    i=j+1;
+                                    console.log(coupon_type)        
+                                }
+                                if(data[j]=="."){
+                                    if(coupon_type=="percentage"){
+                                        var pr = data.slice(i,j);
+                                        discount_percentage = parseInt(pr)
+                                    }
+                                    else if (coupon_type=="amount") {
+                                        var pr = data.slice(i,j);
+                                        discount_amount = parseInt(pr)
+                                    }
+                                }
+                            }
+                        updateDiscount();                      
+                    }
+                });     
+                
+                console.log(cpn_code)
+
+            
+        })
+
+
+        // Remove coupon
+
+        $(document).on('click','#removeCoupon',function(e){
+            coupon_type = null;
+            updateDiscount();
+        });
+
+
+        // Update Discount function
+
+        function updateDiscount() {
+            if(coupon_type=="percentage"){
+                discount = totalPrice * discount_percentage / 100
+            }
+            else if (coupon_type=="amount") {
+                discount = discount_amount
+            }
+            else{
+                discount = 0
+            }
+            console.log("Discount : "+ discount)
+            console.log(coupon_type)
+
+            if(discount==0){
+                removeCpnBtn.disabled =true;
+            }
+            else{
+                removeCpnBtn.disabled = false;
+            }
+
+            updateSummaryCard();
+        }
+
+        function updateSummaryCard(){
+            netTotal = totalPrice - discount;
+            document.getElementById('card-price').textContent =price
+            document.getElementById('card-seats').textContent = selectedSeatsCount
+            document.getElementById('card-total').textContent = totalPrice
+            document.getElementById('card-discount').textContent = discount
+            document.getElementById('card-netTotal').textContent = netTotal
+
+            //update form inputs
+            document.getElementById('discount').value = discount
+            document.getElementById('netTotal').value = netTotal
+        }
+
 
 </script>
 
