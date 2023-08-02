@@ -39,7 +39,10 @@ session_start();
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link active mx-2" aria-current="page" href="../index.php">Home</a>
+          <a class="nav-link active mx-2" aria-current="page" href="./index.php">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active mx-2" aria-current="page" href="./coupons.php">Manage Coupons</a>
         </li>
       </ul>
       <div class="d-flex"> 
@@ -139,7 +142,7 @@ if(@$_SESSION["name"]) {
             var ses = sessionSelect.value;
             $.ajax({    
                 type: "POST",
-                url: "database.php",             
+                url: "fetchbookings.php",             
                 data: {
                        date : dt,
                        session : ses
